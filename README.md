@@ -1,54 +1,54 @@
 # SK2CM
 
-Convertisseur natif C++ pour exporter des releves Splatking / ARKit LiDAR vers un modele COLMAP. Le binaire cible Linux, macOS et Windows via CMake.
+Native C++ converter for exporting SplatKing / ARKit LiDAR captures to a COLMAP model. The binary targets Linux, macOS, and Windows via CMake.
 
-## Prerequis
+## Prerequisites
 
 - CMake 3.20+
-- compilateur C++20
-  - Linux: GCC 11+ ou Clang 14+
-  - macOS: Apple Clang recent
-  - Windows: Visual Studio 2022 ou clang-cl recent
+- C++20 compiler
+  - Linux: GCC 11+ or Clang 14+
+  - macOS: recent Apple Clang
+  - Windows: Visual Studio 2022 or recent `clang-cl`
 
 ## Build
 
-Depuis la racine du depot :
+From the repository root:
 
 ```bash
 cmake -S . -B build
 cmake --build build --config Release
 ```
 
-Executables produits :
+Produced executables:
 
 - Linux / macOS: `build/sk2colmap`
 - Windows multi-config: `build/Release/sk2colmap.exe`
 
 ## Usage
 
-Exemple :
+Example:
 
 ```bash
 ./build/sk2colmap --input ./LidarSeries --output ./output_final --validate-exported-model
 ```
 
-Options utiles :
+Useful options:
 
-- `--align-to-colmap-model <Path>` pour aligner l'export sur le repere d'un modele COLMAP de reference
-- `--snap-shared-cameras-to-reference` pour forcer exactement les poses des images communes sur ce modele de reference
-- `--no-copy-images` pour ne pas recopier les JPEG dans le dossier de sortie
-- `--validate-exported-model` pour relire les `.txt` et `.bin` exportes et comparer leurs comptes
-- `--validation-images <N>` pour changer le nombre d'images utilisees pour la validation depth
-- `--validation-stride <N>` pour changer le sous-echantillonnage des points LiDAR pendant la validation
-- `--depth-bucket-size <N>` pour controler le sous-echantillonnage spatial lors de la projection LiDAR
-- `--max-observations-per-track <N>` pour limiter le nombre d'observations gardees par point 3D
-- `--min-capture-gap <N>` pour imposer un ecart minimum entre captures d'un meme track
-- `--min-baseline-m <meters>` et `--min-angle-deg <degrees>` pour exiger une base geometrique minimale
-- `--base-depth-tolerance-m <meters>` et `--relative-depth-tolerance <ratio>` pour ajuster le filtrage depth
+- `--align-to-colmap-model <Path>` aligns the export to the coordinate frame of a reference COLMAP model
+- `--snap-shared-cameras-to-reference` forces shared image poses to match the reference model exactly
+- `--no-copy-images` skips copying JPEGs into the output directory
+- `--validate-exported-model` rereads the exported `.txt` and `.bin` files and compares their counts
+- `--validation-images <N>` changes how many images are used for depth validation
+- `--validation-stride <N>` changes LiDAR point subsampling during validation
+- `--depth-bucket-size <N>` controls spatial subsampling during LiDAR projection
+- `--max-observations-per-track <N>` limits how many observations are kept for each 3D point
+- `--min-capture-gap <N>` enforces a minimum frame gap between observations in the same track
+- `--min-baseline-m <meters>` and `--min-angle-deg <degrees>` require a minimum geometric baseline
+- `--base-depth-tolerance-m <meters>` and `--relative-depth-tolerance <ratio>` tune depth filtering
 
-## Sorties
+## Outputs
 
-Le convertisseur ecrit :
+The converter writes:
 
 - `output/sparse/0/cameras.bin`
 - `output/sparse/0/cameras.txt`
@@ -65,18 +65,18 @@ Le convertisseur ecrit :
 - `output/validation_summary.txt`
 - `output/reprojection_summary.txt`
 
-## Etat actuel
+## Current Behavior
 
-- Les poses et intrinsics sont convertis vers les formats COLMAP texte et binaire.
-- Les JPEG portrait stockes en `1440x1920` sont automatiquement remappes depuis les intrinsics / depth maps paysage d'origine.
-- Un `camera_id` est cree par image car les intrinsics varient legerement au cours de la capture.
-- `lidar_dense_world_points.ply` correspond au nuage Splatking brut de session.
-- `lidar_sparse_world_points.ply` et `points3D` sont construits a partir de vrais points LiDAR, en ne gardant que les observations image / depth coherentes.
-- `--snap-shared-cameras-to-reference` privilegie l'alignement visuel des cameras communes sur un modele COLMAP de reference, au prix possible d'une degradation de la coherence reprojection des points LiDAR.
-- `camera_pose_summary.txt` permet de verifier numeriquement que les centres camera exportes correspondent bien aux poses ARKit source.
-- Un raffinement de track elimine les observations trop redondantes et exige une base geometrique minimale entre vues.
+- Poses and intrinsics are exported in both COLMAP text and binary formats.
+- Portrait JPEGs stored as `1440x1920` are automatically remapped from the original landscape intrinsics and depth maps.
+- A separate `camera_id` is created per image because intrinsics vary slightly during capture.
+- `lidar_dense_world_points.ply` is the raw session-level SplatKing point cloud.
+- `lidar_sparse_world_points.ply` and `points3D` are built from real LiDAR points, keeping only image/depth-consistent observations.
+- `--snap-shared-cameras-to-reference` prioritizes visual alignment of shared cameras with a reference COLMAP model, with a possible tradeoff in LiDAR reprojection consistency.
+- `camera_pose_summary.txt` lets you numerically verify that exported camera centers match the source ARKit poses.
+- Track refinement removes overly redundant observations and requires a minimum geometric baseline between views.
 
 ## Notes
 
-- La nouvelle implementation portable vit dans `src/` avec un build CMake a la racine.
-- Validation recente sur le jeu `LidarSeries_20260420_105850` : meme nombre de cameras, d'images et de points 3D que la version C#, avec une seule observation 2D supplementaire conservee cote C++ grace au calcul en double precision et au correctif de round-to-even sur le mapping depth.
+- The portable implementation lives in `src/` with a root-level CMake build.
+- Recent validation on `LidarSeries_20260420_105850` matched the C# version on camera, image, and 3D point counts, with one additional 2D observation retained on the C++ side due to double-precision arithmetic and a round-to-even fix in depth mapping.
