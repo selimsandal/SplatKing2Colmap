@@ -1,0 +1,12 @@
+build/
+cmake-build-*/
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+output*/
+LidarSeries/
+
+.DS_Store
+.idea/
+.vscode/
