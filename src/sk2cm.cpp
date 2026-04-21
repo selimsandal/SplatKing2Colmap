@@ -900,20 +900,20 @@ LoadedCapture LoadCapture(const fs::path& input_directory, const json& capture_j
 
     if (actual_image_width == height && actual_image_height == width)
     {
-        colmap_pose = RotateImage90CounterClockwise(colmap_pose);
+        colmap_pose = RotateImage90Clockwise(colmap_pose);
         const auto rotated_width = actual_image_width;
         const auto rotated_height = actual_image_height;
         const auto rotated_fx = fy;
         const auto rotated_fy = fx;
-        const auto rotated_cx = cy;
-        const auto rotated_cy = static_cast<double>(width) - cx;
+        const auto rotated_cx = static_cast<double>(height) - cy;
+        const auto rotated_cy = cx;
         width = rotated_width;
         height = rotated_height;
         fx = rotated_fx;
         fy = rotated_fy;
         cx = rotated_cx;
         cy = rotated_cy;
-        image_rotation = ImageRotation::Rotate90CounterClockwise;
+        image_rotation = ImageRotation::Rotate90Clockwise;
     }
     else
     {
