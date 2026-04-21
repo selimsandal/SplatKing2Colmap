@@ -1955,6 +1955,17 @@ SimilarityTransform EstimateSimilarity(const std::vector<std::pair<Vector3d, Vec
     return {rotation, translation, scale};
 }
 
+SimilarityTransform CreateLichtFeldOrientationCorrection()
+{
+    return {
+        Matrix3d{
+            1.0, 0.0, 0.0,
+            0.0, -1.0, 0.0,
+            0.0, 0.0, -1.0},
+        {},
+        1.0};
+}
+
 Vector3d TransformPoint(const SimilarityTransform& transform, const Vector3d& point)
 {
     return (transform.scale * Multiply(transform.rotation, point)) + transform.translation;
@@ -2315,6 +2326,28 @@ LoadedCapture CreateAlignedCapture(
     aligned.metadata_colmap_pose = TransformPose(capture.metadata_colmap_pose, capture.camera_center_world, transform);
     aligned.colmap_pose = TransformPose(capture.colmap_pose, capture.camera_center_world, transform);
     return aligned;
+}
+
+LoadedDataset TransformDataset(
+    const LoadedDataset& dataset,
+    const SimilarityTransform& transform)
+{
+    auto transformed = dataset;
+    transformed.captures.clear();
+    transformed.captures.reserve(dataset.captures.size());
+    for (const auto& capture : dataset.captures)
+    {
+        transformed.captures.push_back(CreateAlignedCapture(capture, transform));
+    }
+
+    transformed.world_points.clear();
+    transformed.world_points.reserve(dataset.world_points.size());
+    for (const auto& point : dataset.world_points)
+    {
+        transformed.world_points.push_back(TransformPoint(transform, point));
+    }
+
+    return transformed;
 }
 
 LoadedCapture CreateAlignedCapture(
@@ -2870,13 +2903,14 @@ ConversionResult RunConversion(
     };
 
     log_message("Loading dataset from " + options.input_directory.string());
-    auto dataset = LoadDataset(options.input_directory);
+    auto dataset = TransformDataset(LoadDataset(options.input_directory), CreateLichtFeldOrientationCorrection());
     log_message(
         "Loaded " +
         std::to_string(dataset.captures.size()) +
         " captures and " +
         std::to_string(dataset.world_points.size()) +
         " LiDAR points.");
+    log_message("Applied global 180-degree X-axis rotation to the export frame for LichtFeld compatibility.");
 
     auto reconstruction = BuildSparseReconstruction(dataset, options.refinement);
     auto total_observations = 0;
